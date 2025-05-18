@@ -9,31 +9,32 @@ library(recipes)
 library(xgboost)
 library(glmnet)
 library(splines)
-
+library(magrittr)
 setwd('L:/REVISION/')
 list.files()
 
 
 setwd("L:/REVBDF")
 
+setwd('C:/Users/L830195/Downloads/')
 
 data=read.csv('crop.csv', sep=',') %>% select(-label)
 
 ## Visualisation rapide----
 data %>% 
-    summary()
+  summary()
 
 data %>% str()
 
 ## Coder la variable cible en y ----
 data <- data %>% 
-    rename(Y=ph)
+  rename(Y=ph)
 
 ## Traitement des valeurs manquantes ----
 
 # SI PEU DE VALEURS manquantes, RETRAIT DES NA
 data <- data %>% 
-    na.exclude()
+  na.exclude()
 
 # SI TROP DE VALEURS MANQUANTES, RETRAIT VARIABLE
 
@@ -41,7 +42,7 @@ data <- data %>%
 
 ## Recoder les facteurs numériques en facteurs ----
 data <- data %>% 
-    mutate(across(.cols=where(is.character), .fns = as.factor))
+  mutate(across(.cols=where(is.character), .fns = as.factor))
 
 
 # TRAVAIL DES JEUX TRAIN VS TEST ----
@@ -58,34 +59,34 @@ donnees_test_final <- testing(dataset_split)
 Y_FIN <- donnees_test_final$Y
 
 donnees_test_final <- donnees_test_final %>% 
-    select(!Y)
+  select(!Y)
 
 ## Jeu d'entrainement ----
 
 ### Recettes ----
 
 my_recipe = recipe(Y ~ ., data = don)  %>% 
-    # Retrait des variables avec une seule occurence
-    step_zv(all_predictors())%>% 
-    # Imputer les valeurs manquantes numériques la moyenne
-    # step_impute_mean(all_numeric_predictors()) %>% 
-    # Normaliser les variables numétiques
-    step_normalize(all_numeric_predictors()) %>%
-    # # Imputer aux valeurs manquantes cat le mode
-    # step_impute_mode(all_nominal_predictors()) %>%
-    # # Imputer la valeur 'autres' aux variables avec trop d'occurence
-    # step_other(dp,threshold = 0.03) %>% 
-    # One hot encoding
-    step_dummy(all_nominal_predictors(),one_hot = TRUE)
+  # Retrait des variables avec une seule occurence
+  step_zv(all_predictors())%>% 
+  # Imputer les valeurs manquantes numériques la moyenne
+  # step_impute_mean(all_numeric_predictors()) %>% 
+  # Normaliser les variables numétiques
+  step_normalize(all_numeric_predictors()) %>%
+  # # Imputer aux valeurs manquantes cat le mode
+  # step_impute_mode(all_nominal_predictors()) %>%
+  # # Imputer la valeur 'autres' aux variables avec trop d'occurence
+  # step_other(dp,threshold = 0.03) %>% 
+  # One hot encoding
+  step_dummy(all_nominal_predictors(),one_hot = TRUE)
 
 
 don <- my_recipe %>% 
-    prep() %>% 
-    bake(new_data = don)
+  prep() %>% 
+  bake(new_data = don)
 
 ### Création du format matriciel ---- 
 donX = as.matrix(don %>% 
-                     select(!Y))
+                   select(!Y))
 
 donY = don$Y
 
@@ -93,22 +94,22 @@ donY = don$Y
 
 ### Recettes ----
 my_recipe = recipe(~ ., data = donnees_test_final)  %>% 
-    # Retrait des variables avec une seule occurence
-    step_zv(all_predictors())%>% 
-    # Imputer les valeurs manquantes numériques la moyenne
-    # step_impute_mean(all_numeric_predictors()) %>% 
-    # Normaliser les variables numétiques
-    step_normalize(all_numeric_predictors()) %>%
-    # # Imputer aux valeurs manquantes cat le mode
-    # step_impute_mode(all_nominal_predictors()) %>%
-    # # Imputer la valeur 'autres' aux variables avec trop d'occurence
-    # step_other(dp,threshold = 0.03) %>% 
-    # One hot encoding
-    step_dummy(all_nominal_predictors(),one_hot = TRUE)
+  # Retrait des variables avec une seule occurence
+  step_zv(all_predictors())%>% 
+  # Imputer les valeurs manquantes numériques la moyenne
+  # step_impute_mean(all_numeric_predictors()) %>% 
+  # Normaliser les variables numétiques
+  step_normalize(all_numeric_predictors()) %>%
+  # # Imputer aux valeurs manquantes cat le mode
+  # step_impute_mode(all_nominal_predictors()) %>%
+  # # Imputer la valeur 'autres' aux variables avec trop d'occurence
+  # step_other(dp,threshold = 0.03) %>% 
+  # One hot encoding
+  step_dummy(all_nominal_predictors(),one_hot = TRUE)
 
 donnees_test_final <- my_recipe %>% 
-    prep() %>% 
-    bake(new_data = donnees_test_final)
+  prep() %>% 
+  bake(new_data = donnees_test_final)
 
 
 ### Création du format matriciel ----
@@ -118,13 +119,14 @@ donnees_test_finalX = as.matrix(donnees_test_final)
 donnes_test_finalY = Y_FIN
 
 
-# ==============================================================================
-# >>> Clustering 
-# Classification ascendante hiérarchique
-# ==============================================================================
+# Clustering ---- 
+## Classification ascendante hiérarchique ----
 
-# Matrice de distances
-mat_dist = dist(don,method='euclidean')
+### Retrait du Y ----
+don_raw_clust = don %>% select(-Y)
+
+### Matrice de distances ----
+mat_dist = dist(don_raw_clust,method='euclidean')
 
 # Calcul de la CAH
 cah=hclust(mat_dist, method= 'ward.D')
@@ -132,9 +134,12 @@ cah=hclust(mat_dist, method= 'ward.D')
 # Identifier le point de rupture 
 plot(rev(cah$height)[1:10], type='b')
 plot(cah)
+
 n.clusters = 3
+
 don$cluster = cutree(cah, k=n.clusters) # définir le nombre de clusters
 
+don %>% head()
 
 # ==============================================================================
 # >>> Boucler sur n.clusters 
@@ -145,23 +150,24 @@ don$cluster = cutree(cah, k=n.clusters) # définir le nombre de clusters
 
 # BOUCLE DE COMPARAISON ----
 jj=1;ii=1
+
 for(jj in 1:n.clusters){
-    
-    don_clust = don[which(don$cluster == jj),]
-    
-    don_clustX = as.matrix(don_clust %>% 
-                         select(!Y))
-    
-    don_clustY = don_clust$Y
-    
-    
-    SCORE=data.frame('Y'=don_clust$Y)
-    
-    nb=3
-    
-    bloc <- sample(rep(1:nb,length=nrow(don_clust)))  # création des blocs de la VC
-    
-    for(ii in 1:nb){
+  
+  don_clust = don[which(don$cluster == jj),!names(don) %in% c('cluster')]
+  
+  don_clustX = as.matrix(don_clust %>% 
+                           select(!Y))
+  
+  don_clustY = don_clust$Y
+  
+  
+  SCORE=data.frame('Y'=don_clust$Y)
+  
+  nb=3
+  
+  bloc <- sample(rep(1:nb,length=nrow(don_clust)))  # création des blocs de la VC
+  
+  for(ii in 1:nb){
     
     
     t1 <- Sys.time()
@@ -348,27 +354,55 @@ for(jj in 1:n.clusters){
     #SCORE[bloc==ii,"xgb"] <- predict(xgbopt,xgb_data_test)
     #
     print(paste0("Temps total du bloc",ii,": ",(Sys.time()-t1) %>% round(2)))
-    }
-    
-
-    
-    assign(paste0('SCORE_', 'cluster_',jj ),SCORE)
-    
+  }
+  
+  
+  
+  assign(paste0('SCORE_', 'cluster_',jj ),SCORE) # sortir le score des algos sur le cluster jj
+  
 }
 
 erreur2 = function(X,Y){mean((X-Y)^2)}
 
-erreur_cluster_1 = sort((apply(SCORE_cluster_1,2,erreur2,Y=SCORE[,'Y'])[-1]))
+erreur_cluster_1 = sort((apply(SCORE_cluster_1,2,erreur2,Y=SCORE_cluster_1[,'Y'])[-1]))
+erreur_cluster_2 = sort((apply(SCORE_cluster_2,2,erreur2,Y=SCORE_cluster_2[,'Y'])[-1]))
+erreur_cluster_3 = sort((apply(SCORE_cluster_3,2,erreur2,Y=SCORE_cluster_3[,'Y'])[-1]))
 
 erreur_cluster_1
+erreur_cluster_2
+erreur_cluster_3
 
-# ESTIMATION SUR LE JEU D'APPRENTISSAGE ----
+# répartir les données test en clusters ---- 
 
-SCORE
-sort((apply(SCORE,2,erreur2,Y=SCORE[,'Y'])[-1]))
+centroids <- don[,!names(don) %in% c('Y')] %>%
+  group_by(cluster) %>%
+  summarise(across(everything(), mean)) %>%
+  column_to_rownames("cluster")
+
+centroids
+
+# 3. Compute distances to each centroid and assign the nearest
+assign_cluster <- function(row) {
+  dists <- apply(centroids, 1, function(center) sum((row - center)^2))
+  return(as.integer(names(which.min(dists))))
+}
+
+new_clusters <- apply(donnees_test_final, 1, assign_cluster)
+
+donnees_test_final$cluster = new_clusters
+
+# Ré-apprendre avec les algos les plus performants/cluster ----
+
+## Cluster 1 ----
+don1 = don[don$cluster==1,!names(don) %in% c('cluster')]
+
+model_cluster_1=erreur_cluster_1[1]
+
+## Cluster 2 ----   
 
 
 
+# Prédire chaque modèle sur les clusters de TEST
 
 
 
