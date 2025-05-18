@@ -185,10 +185,10 @@ for(jj in 1:n.clusters){
     
     print("STEP AIC")
     # AIC ========================================================================
-    #tmp_aic <- stats::step(tmp,trace=0)
-    #SCORE[bloc==ii,"aic"] <- predict(tmp_aic,donT)
-    #
-    #print("STEP BIC")
+    tmp_aic <- stats::step(tmp,trace=0)
+    SCORE[bloc==ii,"aic"] <- predict(tmp_aic,donT)
+    
+    print("STEP BIC")
     ## BIC ========================================================================
     #tmp_bic <- stats::step(tmp,trace=0,k=log(nrow(donA)))
     #SCORE[bloc==ii,"bic"] <- predict(tmp_bic,donT)
@@ -350,27 +350,21 @@ for(jj in 1:n.clusters){
     print(paste0("Temps total du bloc",ii,": ",(Sys.time()-t1) %>% round(2)))
     }
     
-    SCORE$cluster = jj
+
     
     assign(paste0('SCORE_', 'cluster_',jj ),SCORE)
     
 }
 
-tobind=ls(pattern = 'SCORE_cluster',envir = .GlobalEnv)
-score_list=mget(tobind)
-SCORE_clusters =  do.call(rbind, Map(function(x, name) {
-    x$source <- name
-    x
-}, score_list, names(score_list)))
+erreur2 = function(X,Y){mean((X-Y)^2)}
 
-rownames(SCORE_clusters)=NULL
+erreur_cluster_1 = sort((apply(SCORE_cluster_1,2,erreur2,Y=SCORE[,'Y'])[-1]))
 
-SCORE_clusters %>% head()
+erreur_cluster_1
 
 # ESTIMATION SUR LE JEU D'APPRENTISSAGE ----
 
 SCORE
-erreur2 = function(X,Y){mean((X-Y)^2)}
 sort((apply(SCORE,2,erreur2,Y=SCORE[,'Y'])[-1]))
 
 
