@@ -348,7 +348,7 @@ for(ii in 1:nb){
     
     x = data.frame(cbind(xgrid[pp,],bestIter,bestRMSE))
     
-    results[pp,1:nrow(xgrid)] = x
+    results[pp,1:ncol(x)] = x
     
   }
   
@@ -424,7 +424,7 @@ for(pp in 1:nrow(xgrid)){
   
   x = data.frame(cbind(xgrid[pp,],bestIter,bestRMSE))
   
-  results[pp,1:nrow(xgrid)] = x
+  results[pp,1:ncol(x)] = x
   
 }
 
