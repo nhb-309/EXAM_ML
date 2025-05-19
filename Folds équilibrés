@@ -1,0 +1,17 @@
+cv_folds <- vfold_cv(don, 
+                     v = 5, 
+                     strata = Y)  
+
+
+jeu_test_1 <- assessment(cv_folds$splits[[1]]) 
+jeu_test_2 <- assessment(cv_folds$splits[[2]]) 
+jeu_test_3 <- assessment(cv_folds$splits[[3]]) 
+jeu_test_4 <- assessment(cv_folds$splits[[4]]) 
+jeu_test_5 <- assessment(cv_folds$splits[[5]]) 
+
+ggplot(jeu_test_1,aes(x=Y))+geom_density()+theme_bw()+labs(title="Densité du Y jeu test 1")
+
+ggplot(jeu_test_2,aes(x=Y))+geom_density()+theme_bw()+labs(title="Densité du Y jeu test 2")
+ggplot(jeu_test_3,aes(x=Y))+geom_density()+theme_bw()+labs(title="Densité du Y jeu test 3")
+ggplot(jeu_test_4,aes(x=Y))+geom_density()+theme_bw()+labs(title="Densité du Y jeu test 4")
+ggplot(jeu_test_5,aes(x=Y))+geom_density()+theme_bw()+labs(title="Densité du Y jeu test 5")
